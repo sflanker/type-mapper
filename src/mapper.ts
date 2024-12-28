@@ -7,6 +7,38 @@ import {
 } from "./validation.js";
 import { DecoratedType, MappingMetadata } from "./decorators.js";
 
+function getProperty(propertyRef: string | number, data: any): { found: boolean, value?: any } {
+  if (typeof propertyRef === "number") {
+    return {
+      found: propertyRef in data,
+      value: data[propertyRef]
+    };
+  }
+
+  const parts = propertyRef.split(".");
+  let current = data;
+  let path = [];
+  for (const part of parts) {
+    path.push(part);
+    if (current == null) {
+      return { found: false };
+    }
+
+    const ix = Number(part);
+    const ixOrName = Number.isNaN(ix) ? part : ix;
+    if (ixOrName in current) {
+      current = current[ixOrName];
+    } else {
+      return { found: false };
+    }
+  }
+
+  return {
+    found: true,
+    value: current,
+  };
+}
+
 export class Mapper {
   // Sequence: alias -> validate -> transform -> recurse
   static convert<T, TArgs extends any[] = []>(
@@ -46,6 +78,10 @@ export class Mapper {
     ctx: ValidationContext,
     path: (string | number)[],
   ): any {
+    if (data === null || data === undefined) {
+      return data;
+    }
+
     const paramMappings: MappingMetadata[] | undefined = ctor._parameters;
     const propMappings: { [key: string]: MappingMetadata } | undefined =
       ctor._properties;
@@ -54,12 +90,12 @@ export class Mapper {
 
     if (paramMappings) {
       for (let index = 0; index < paramMappings.length; index++) {
-        const mapping = paramMappings[index];
+        const mapping: MappingMetadata = paramMappings[index];
         let mapped = false;
         for (const mappedNameOrIx of ifEmpty(mapping?.aliases, index)) {
-          if (mappedNameOrIx in data) {
+          let { found, value: val } = getProperty(mappedNameOrIx, data);
+          if (found) {
             path.push(mappedNameOrIx);
-            let val: any = data[mappedNameOrIx];
 
             if (mapping.preValidationTransform) {
               val = mapping.preValidationTransform(val);
@@ -97,8 +133,12 @@ export class Mapper {
           }
         }
 
-        if (!mapped && mapping?.isRequired) {
-          ctx.error(`Required parameter not found: ${index}`);
+        if (!mapped) {
+          if (mapping?.isRequired) {
+            ctx.error(`Required parameter not found: ${ifEmpty(mapping?.aliases, index)}`);
+          } else if(mapping?.defaultValue) {
+            params[index] = mapping.defaultValue;
+          }
         }
       }
     }
@@ -107,12 +147,12 @@ export class Mapper {
 
     if (propMappings) {
       for (const key of Object.getOwnPropertyNames(propMappings)) {
-        const mapping = propMappings[key];
+        const mapping: MappingMetadata = propMappings[key];
         let mapped = false;
         for (const mappedNameOrIx of ifEmpty(mapping.aliases, key)) {
-          if (mappedNameOrIx in data) {
+          let { found, value: val } = getProperty(mappedNameOrIx, data);
+          if (found) {
             path.push(mappedNameOrIx);
-            let val: any = data[mappedNameOrIx];
 
             if (mapping.preValidationTransform) {
               val = mapping.preValidationTransform(val);
@@ -149,10 +189,22 @@ export class Mapper {
           }
         }
 
-        if (!mapped && mapping?.isRequired) {
-          ctx.error(`Required property or field not found: ${key}`);
+        if (!mapped) {
+          if (mapping.isRequired) {
+            ctx.error(`Required property or field not found: ${key}`);
+          } else if (mapping.defaultValue) {
+            result[key] = mapping.defaultValue;
+          }
         }
       }
+    }
+
+    if (implementsCustomMapping(result)) {
+      result.mapData(data, ctx);
+    }
+
+    if (implementsCustomValidation(result)) {
+      result.validate(ctx);
     }
 
     return result;
@@ -202,6 +254,7 @@ function isDecoratedType(
     }
     return true;
   }
+
   function arrayOrUnspecified(name: string) {
     if (name in ctor) {
       const val = (<any>ctor)[name];
@@ -211,11 +264,22 @@ function isDecoratedType(
     }
     return true;
   }
-  if (!objectOrUnspecified("_properties")) {
-    return false;
-  }
-  if (!arrayOrUnspecified("_parmeters")) {
-    return false;
-  }
-  return true;
+
+  return objectOrUnspecified("_properties") && arrayOrUnspecified("_parmeters");
+}
+
+export interface ICustomMapping {
+  mapData(data: any, ctx: IValidationContext): void
+}
+
+function implementsCustomMapping(obj: any): obj is ICustomMapping {
+  return obj && typeof obj === "object" && "mapData" in obj && typeof obj.mapData === "function";
+}
+
+export interface ICustomValidation {
+  validate(ctx: IValidationContext): void
+}
+
+function implementsCustomValidation(obj: any): obj is ICustomValidation {
+  return obj && typeof obj === "object" && "validate" in obj && typeof obj.validate === "function";
 }

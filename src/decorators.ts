@@ -33,6 +33,20 @@ export function required(
   });
 }
 
+export function defaultValue(value: any): PropertyDecorator & ParameterDecorator {
+  function defaultValueDecorator(
+    target: any,
+    key: symbol | string | undefined,
+    descriptorOrIx?: PropertyDescriptor | number,
+  ): void {
+    withMapping(target, key, descriptorOrIx, (mapping) => {
+      mapping.defaultValue = value
+    })
+  }
+
+  return defaultValueDecorator
+}
+
 // validate
 export function validate(
   fn: (v: any, ctx: IValidationContext) => void,
@@ -113,6 +127,7 @@ export type MappingMetadata = {
   mappedAs?: DecoratedType;
   isArray?: boolean;
   isRequired?: boolean;
+  defaultValue?: any;
 };
 
 export type DecoratedType = (new (...args: any[]) => any) & {
@@ -171,8 +186,9 @@ function makeMappingMetadata(): MappingMetadata {
   return {
     aliases: <(string | number)[]>[],
     validations: <Array<(v: any, ctx: IValidationContext) => void>>[],
-    // transform?: (v: any) => any;
-    // mappedAs?: DecoratedType;
-    // isArray?: boolean;
+    // transform?: (v: any) => any,
+    // mappedAs?: DecoratedType,
+    // isArray?: boolean,
+    // defaultValue?: any,
   };
 }

@@ -302,13 +302,15 @@ export const isString = () =>
     }),
   );
 
-export const isNumber = () =>
+export const isNumber = (allowNaN: boolean = false) =>
   makeNumberValidator(
     makeValidatorChain<any, number>((value: any, ctx: IValidationContext) => {
       if (typeof value !== "number") {
         ctx.error(`Expected type number, but found: ${typeof value}`);
+      } else if (!allowNaN && isNaN(value)) {
+        ctx.error("Unexpected value: NaN");
       }
-    }),
+    })
   );
 
 export type NullableValidator = ValidatorFn<any> & {

@@ -1,13 +1,24 @@
-import { mapped, alias, required, validate, transform, typeOf, arrayOf } from './decorators.js'
-export * from './mapper.js'
-export * from './validation.js'
-
-export {
-  mapped,
+import {
   alias,
+  arrayOf,
+  defaultValue,
+  mapped,
   required,
-  validate,
   transform,
   typeOf,
+  validate,
+} from "./decorators.js";
+
+export * from "./mapper.js";
+export * from "./validation.js";
+
+export {
+  alias,
   arrayOf,
+  defaultValue,
+  mapped,
+  required,
+  transform,
+  typeOf,
+  validate,
 };
