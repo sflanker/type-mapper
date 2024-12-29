@@ -1,3 +1,5 @@
+[![Build](https://github.com/sflanker/type-mapper/actions/workflows/build.yml/badge.svg)](https://github.com/sflanker/type-mapper/actions/workflows/build.yml)
+
 # Type-Mapper - Declarative Mapping Between Untyped Data and JavaScript Classes
 
 If you have untyped data in JavaScript, from `JSON.parse` for example, and you want to transform it into a JavaScript class using a combination of constructor arguments and properties, then `type-mapper` is a solution.
