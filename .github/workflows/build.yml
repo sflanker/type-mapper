@@ -2,6 +2,9 @@ name: Build type-mapper
 
 on:
   pull_request:
+  push:
+    branches: [ 'main' ]
+
 
 permissions:
   contents: 'read'
