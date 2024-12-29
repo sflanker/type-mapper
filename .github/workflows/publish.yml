@@ -3,7 +3,7 @@ name: Publish type-mapper
 on:
   workflow_dispatch:
   push:
-    tags: [ '*.*.*' ]
+    tags: [ 'v*.*.*' ]
 
 
 permissions:
