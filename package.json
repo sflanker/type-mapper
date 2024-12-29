@@ -1,15 +1,16 @@
 {
-  "name": "nodejs-typescript",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@sflanker/type-mapper",
+  "version": "0.0.1",
+  "description": "A library for declarative validation and mapping untyped data into classes.",
   "main": "dist/src/index.js",
+  "files": ["dist/src"],
   "type": "module",
   "scripts": {
     "test": "node --import tsx --test ./test/*-test.ts",
     "build": "tsc"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Paul Wheeler",
+  "license": "MIT",
   "devDependencies": {
     "@esbuild-kit/esm-loader": "^2.6.5",
     "@types/node": "^20.10.0",
