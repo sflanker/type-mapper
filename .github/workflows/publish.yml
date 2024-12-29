@@ -1,0 +1,56 @@
+name: Publish type-mapper
+
+on:
+  workflow_dispatch:
+  push:
+    tags: [ '*.*.*' ]
+
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # setup node js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+
+      - name: Get version from package.json
+        id: pkg_version
+        run: |
+          # Read the "version" field from package.json
+          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Verify version matches tag
+        id: verify_tag
+        run: |
+          # Extract the git tag (without the "refs/tags/" prefix)
+          GIT_TAG=${GITHUB_REF#refs/tags/}
+
+          # Compare PACKAGE_VERSION and GIT_TAG after removing the "v" prefix from the tag
+          if [ "$GIT_TAG" != "v$PACKAGE_VERSION" ]; then
+            echo "Git tag ($GIT_TAG) does not match package.json version (v$PACKAGE_VERSION)"
+            exit 1
+          else
+            echo "Versions match: Git tag ($GIT_TAG) matches package.json version (v$PACKAGE_VERSION)"
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & Test
+        run: npm run build && npm test
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
